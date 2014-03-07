@@ -1,0 +1,64 @@
+<head>
+<script src="js/jquery-1.11.0.js"></script>
+<script src="js/raphael.js"></script>
+<script src="js/clusterfck.js"></script>
+<script src="js/lodash.js"></script>
+<script src="js/jquery.csv-0.71.js"></script>
+<script src="js/bluebird.js"></script>
+<script src="js/dropzone.js"></script>
+<link href="css/dropzone.css" rel="stylesheet" type="text/css">
+
+<script>
+	Dropzone.options.myAwesomeDropzone = {
+	  paramName: "file", // The name that will be used to transfer the file
+	  acceptedFiles: "image/*",
+	  maxFilesize: 3, // MB
+	  addRemoveLinks: true,
+	  accept: function(file, done) {
+	    done();
+	  },
+	  init: function() {
+	  	this.on("success", function(file,response) { 
+	  		var call_button = Dropzone.createElement("<a class='dz-remove' href='call_colonies.html?token=" + response.token + "'>Call Collonies</a>");
+	  		// Capture the Dropzone instance as closure.
+	        var _this = this;
+
+	        // Listen to the click event
+	        call_button.addEventListener("click", function(e) {
+	          // Make sure the button click doesn't submit the form:
+	          //e.preventDefault();
+	          e.stopPropagation();
+
+	          // Remove the file preview.
+	          //_this.removeFile(file);
+	          
+	        });
+
+	        file.previewElement.appendChild(call_button);
+	  	});
+	  }
+	};
+
+</script>
+
+<style>
+	body {
+		display: block;
+		margin: 0px;
+	}
+</style>
+</head>
+
+<body>
+
+<div id="dropzone">
+	<form action="http://localhost:3000/upload_plate" method="post" 
+		class="dropzone dz-clickable" id="my-awesome-dropzone" enctype="multipart/form-data">
+
+	</form>
+</div>
+
+
+
+</body>
+

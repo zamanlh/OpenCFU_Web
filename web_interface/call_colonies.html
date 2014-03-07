@@ -1,0 +1,107 @@
+<head>
+<script src="js/jquery-1.11.0.js"></script>
+<script src="js/raphael.js"></script>
+<script src="js/clusterfck.js"></script>
+<script src="js/lodash.js"></script>
+<script src="js/bluebird.js"></script>
+<style>
+	body {
+		display: block;
+		margin: 0px;
+	}
+</style>
+</head>
+
+<body>
+
+
+</body>
+
+<script>
+	var data_set;
+ 	var paper;
+	var image;
+	var myImg;
+	var imgURL;
+    var to_cluster = [];
+    var clusters;
+
+    myImg = new Image();
+
+	myImg.onload = function() {
+    	paper.image(imgURL, 0,0, myImg.width, myImg.height);
+    	paper.setViewBox(0, 0, myImg.width, myImg.height);
+	};
+
+	paper = Raphael(0,0, 1000, 800);
+
+	var urlParams;
+	(window.onpopstate = function () {
+	    var match,
+	        pl     = /\+/g,  // Regex for replacing addition symbol with a space
+	        search = /([^&=]+)=?([^&]*)/g,
+	        decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+	        query  = window.location.search.substring(1);
+
+	    urlParams = {};
+	    while (match = search.exec(query))
+	       urlParams[decode(match[1])] = decode(match[2]);
+	})();
+
+	//classify plate!
+	$.getJSON("http://localhost:3000/run_open_cfu/" + urlParams['token'], function(data){
+		console.log(data);
+		data_set = data;
+		_.forEach(data, 
+			function(val, index, collection) {
+				var tmp = [val['Hue'], val['Saturation'], val['Rmean'], val['Gmean'], val['Bmean']]
+				tmp.idx = index
+
+				to_cluster.push(tmp);
+
+				/**			
+				paper.circle(val['X'], val['Y']	, val['Radius']*1.2)
+					.data("hue", val['Hue'])
+					.data("index", index)
+					.attr("stroke-width", 2)
+					.attr("fill", "black")
+					.attr("opacity", 0.3)
+					.click(function() { this.attr("fill", "white"); } );
+
+				**/
+
+			});
+
+		clusters = clusterfck.kmeans(to_cluster, 2);
+		console.log(clusters);
+
+		draw_colonies(clusters);
+				
+	});
+
+
+	var draw_colonies = function() {
+		var colors = ["purple", "green", "blue", "yellow", "red"]
+		_.forEach(clusters, function (cluster_val, cluster_index, cluster_coll) {
+			_.forEach(cluster_val, function (colony_val, colony_index, colony_coll) {
+				var val = data_set[colony_val.idx]
+				paper.circle(val['X'], val['Y']	, val['Radius']*1.2)
+					.data("hue", val['Hue'])
+					.data("index", cluster_index)
+					.attr("stroke-width", 2)
+					.attr("fill", colors[cluster_index])
+					.attr("opacity", 0.4)
+					.click(function() { this.attr("fill", "orange"); this.attr("opacity", "0.8") } );
+			});
+		});
+	};
+
+	//load appropriate image into canvas
+	$.getJSON("http://localhost:3000/get_plate/" + urlParams['token'], function(data){
+		console.log(data);
+		imgURL = "http://localhost:3000/" + data.filename;
+    	myImg.src = imgURL;
+	});
+
+</script>
+
