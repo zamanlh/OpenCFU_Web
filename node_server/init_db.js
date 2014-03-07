@@ -12,7 +12,7 @@ var connect = require('reql-then')
 
 var remove_old = r.dbDrop('opencfu_plates');
 var create_db = r.dbCreate('opencfu_plates');
-var create_table = r.db('opencfu_plates').tableCreate('plates');
+var create_table = r.db('opencfu_plates').tableCreate('plates', {primaryKey: "token"});
 
 
 //Do this better!
