@@ -1,5 +1,6 @@
 var express = require('express');
 var cors = require('cors')
+var qs = require('querystring');
 var fs = require('fs');
 var r = require('rethinkdb');
 var path = require('path');
@@ -125,7 +126,43 @@ app.post('/upload_plate', express.bodyParser({uploadDir:'upload_temp'}), functio
 //what to do if run again on same plate??
 app.get('/run_open_cfu/:token', function(request, response) {
 
+	var query = request.url.split('?')[1];
+	var ocfu_params = qs.parse(query);
+	console.log(ocfu_params);
+
+	var ocfu_command = 'opencfu -t3 -R25 -mauto -dbil -i';
+/**
+{ slider_radius: '[5, 20]',
+  threshold: 'reg',
+  slider_threshold: '5' }
+
+  { slider_radius: '[5, 20]',
+  auto_max: '1',
+  threshold: 'reg',
+  slider_threshold: '5',
+  auto_threshold: '1' }
+
+**/
+
+	if (ocfu_params.slider_radius){
+		ocfu_params.slider_radius = ocfu_params.slider_radius.split(',');
+
+		ocfu_command = 'opencfu';
+		ocfu_command += ' -r' + ocfu_params.slider_radius[0];
+		ocfu_command += ' -R' + ocfu_params.slider_radius[1];
+		ocfu_command += ' -d' + ocfu_params.threshold;
+		ocfu_command += ' -t' + ocfu_params.slider_threshold;
+
+		if (ocfu_params.auto_threshold) {
+			ocfu_command += ' -a';
+		};
+
+		ocfu_command += ' -i';
+
+	};
+
 	var plates = null;
+	//console.log(ocfu_params);
 
 	//reql(r.table('plates').filter(r.row("token").eq(request.params.token)))
 	reql(r.table('plates').get(request.params.token))
@@ -134,7 +171,9 @@ app.get('/run_open_cfu/:token', function(request, response) {
 
 		//Run opencfu
 		if (plate) {
-			var child = exec('opencfu -t3 -R25 -mauto -dbil -i uploads/' + plate.filename, function (error, stdout, stderr) {
+			console.log(ocfu_command + ' uploads/' + plate.filename);
+
+			var child = exec(ocfu_command + ' uploads/' + plate.filename, function (error, stdout, stderr) {
 				if (error || stderr) {
 					console.log("shit went down...");
 					response.writeHead(497, {'Content-Type': 'application/json'});
