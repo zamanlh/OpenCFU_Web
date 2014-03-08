@@ -3,9 +3,10 @@
 <script src="js/raphael.js"></script>
 <script src="js/clusterfck.js"></script>
 <script src="js/lodash.js"></script>
-<script src="js/jquery.csv-0.71.js"></script>
 <script src="js/bluebird.js"></script>
 <script src="js/dropzone.js"></script>
+<script src="js/ocfu_defs.js"></script>
+
 <link href="css/dropzone.css" rel="stylesheet" type="text/css">
 
 <script>
@@ -39,6 +40,10 @@
 	  }
 	};
 
+	$(document).ready(function() {
+		$('#my-awesome-dropzone')[0].action = 	api_server + '/upload_plate';
+	});
+
 </script>
 
 <style>
@@ -52,7 +57,7 @@
 <body>
 
 <div id="dropzone">
-	<form action="http://localhost:3000/upload_plate" method="post" 
+	<form action="placeholder" method="post" 
 		class="dropzone dz-clickable" id="my-awesome-dropzone" enctype="multipart/form-data">
 
 	</form>

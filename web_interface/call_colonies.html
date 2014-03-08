@@ -6,6 +6,8 @@
 <script src="js/bluebird.js"></script>
 <script src="js/bootstrap.js"></script>
 <script src="js/bootstrap-slider.js"></script>
+<script src="js/ocfu_defs.js"></script>
+
 
 <style>
 	body {
@@ -98,7 +100,7 @@
 		$('circle').remove();
 
 		//classify plate!
-		$.getJSON("http://localhost:3000/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize(), function(data){
+		$.getJSON(api_server + "/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize(), function(data){
 			var to_cluster = [];
 
 			data_set = data;
@@ -172,7 +174,7 @@
 
 
 	//classify plate!
-	$.getJSON("http://localhost:3000/run_open_cfu/" + urlParams['token'], function(data){
+	$.getJSON( api_server + "/run_open_cfu/" + urlParams['token'], function(data){
 		var to_cluster = [];
 
 		data_set = data;
@@ -208,8 +210,8 @@
 	};
 
 	//load appropriate image into canvas
-	$.getJSON("http://localhost:3000/get_plate/" + urlParams['token'], function(data){
-		imgURL = "http://localhost:3000/" + data.filename;
+	$.getJSON(api_server + "/get_plate/" + urlParams['token'], function(data){
+		imgURL = api_server + '/' +  data.filename;
 		myImg.src = imgURL;
 	});
 
