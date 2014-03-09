@@ -157,6 +157,7 @@ app.get('/run_open_cfu/:token', function(request, response) {
 			ocfu_command += ' -a';
 		};
 
+		ocfu_command += ' -mauto';
 		ocfu_command += ' -i';
 
 	};
