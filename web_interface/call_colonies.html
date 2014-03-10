@@ -15,6 +15,15 @@
 		display: block;
 		margin: 0px;
 	}
+	.top-right-counts {
+		position: absolute;
+		left: 80%;
+		top: 15px;
+		z-index: 102;
+		width:auto;
+		height:auto;
+		width:auto;
+	}
 	.top-left-abs {
 		position: absolute;
 		left: 15px;
@@ -45,6 +54,22 @@
 	.colorp{
 		margin-top: 5px;
 	}
+
+	.cluster_label {
+		font-size: 20;
+		width: auto;
+		height: auto;
+	}
+	.stroked
+	{
+	    color: white;
+	    text-shadow:
+	    -1px -1px 0 #000,
+	    1px -1px 0 #000,
+	    -1px 1px 0 #000,
+	    1px 1px 0 #000;  
+	}
+
 </style>
 
 <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
@@ -57,6 +82,10 @@
 
 <div class="top-left-abs">
 	<a href="#" id="show_controls" class="btn btn-primary" role="button">Show controls</a>
+</div>
+
+<div class="top-right-counts" id="cluster_label_div">	
+
 </div>
 
 <form id="ocfu_form" role="form" method="POST", action="#">
@@ -134,20 +163,41 @@
 
 <script>
 
+	var rgba_opaque = function(rgba_col) {
+		return rgba_col.replace(/[^,]+(?=\))/, '1.0')
+	};
+
 	var color_picker_colors = ["rgba(255,0,0,0.3)", "rgba(0,255,0,0.3)", "rgba(0,0,255,0.3)", "rgba(255,255,0,0.3)", "rgba(255,0,255,0.3)"];
 
+	var add_cluster_counters = function(num_counters) {
+		$('.cluster_label').remove();
+		var cluster_label_div = $('#cluster_label_div');
+
+		for (var i=0; i < num_counters; i++) {
+			var c_badge = document.createElement('span');
+			c_badge.className="badge cluster_label stroked";
+			c_badge.cluster_id = i;
+			c_badge.id = "cluster_badge" + i;
+			c_badge.style.fontSize="24px"
+			$(c_badge).text("working...");
+
+			cluster_label_div.append(c_badge);
+		};
+	};
 
 	var clustering_enabled = function(bool_enable) {
 		if(bool_enable) {
 			$('#kmeans_fieldset').prop("disabled", false);
 			$('#slider_k').slider('enable');
+			$('#cluster_label_div').show();
+
 		
 		} else {
 			$('#kmeans_fieldset').prop("disabled", true);
 			$('#slider_k').slider('disable');
+			$('#cluster_label_div').hide();
 		};
 	};
-
 
 	var add_color_sliders = function(num_sliders) {
 		$('.colorp').remove();
@@ -169,6 +219,14 @@
 				draw_colonies(clusters);
 		 	});
 		};
+
+		add_cluster_counters(num_sliders);
+
+		colony_sets = [];
+		for (var i=0; i<num_sliders;i++) {
+			colony_sets.push(paper.set());
+		};
+
 	};
 
 
@@ -178,7 +236,6 @@
 	$('#slider_k').slider().on("slideStop", function(ev) {
 		add_color_sliders(ev.value);
 		cluster(to_cluster_g, ev.value, draw_colonies);
-		console.log(clusters);
 	});
 
     $(function(){
@@ -186,13 +243,11 @@
     });
 
 	$('#hide_controls').click(function(d) {
-		console.log(d);
 		$('.controls').css("zIndex", 0);
 		d.preventDefault();
 	})
 
 	$('#show_controls').click(function(d) {
-		console.log(d);
 		$('.controls').css("zIndex", 100);
 		d.preventDefault();
 	})
@@ -204,10 +259,8 @@
 		//remove old circles
 		$('circle').remove();
 
-		console.log("re-running opencfu")
 		//classify plate!
 
-		console.log(api_server + "/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize());
 
 		$.getJSON(api_server + "/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize(), function(data){
 			var to_cluster = [];
@@ -263,6 +316,9 @@
 
 	paper = Raphael(0,0, 1000, 800);
 
+	var colony_sets = [paper.set()];
+
+
 	var urlParams;
 
 	(window.onpopstate = function () {
@@ -287,6 +343,7 @@
 
 
 	//classify plate!
+	clustering_enabled(false);
 	$.getJSON( api_server + "/run_open_cfu/" + urlParams['token'], function(data){
 		clustering_enabled(false);
 
@@ -314,19 +371,33 @@
 	});
 
 	var draw_colonies = function(d_clusters) {
+
 		 $('circle').remove();
 
-		clusters = d_clusters;
+		 //TODO use these to count
+		 _.forEach(colony_sets, function (set) {set.clear();});
+
+
+		clusters = d_clusters;	
 		_.forEach(d_clusters, function (cluster_val, cluster_index, cluster_coll) {
+
 			_.forEach(cluster_val, function (colony_val, colony_index, colony_coll) {
-				var val = data_set[colony_val.idx]
-				paper.circle(val['X'], val['Y']	, val['Radius']*1.3)
-					.data("hue", val['Hue'])
-					.data("index", cluster_index)
-					.attr("stroke-width", 1)
-					.attr("fill", color_picker_colors[cluster_index])
-					.click(function() { this.attr("fill", "orange"); this.attr("opacity", "0.8") } );
+				var val = data_set[colony_val.idx];
+
+				colony_sets[cluster_index].push(
+
+					paper.circle(val['X'], val['Y']	, val['Radius']*1.3)
+						.data("hue", val['Hue'])
+						.data("cluster_index", cluster_index)
+						.attr("stroke-width", 1)
+						.attr("fill", color_picker_colors[cluster_index])
+						.click(function() { this.attr("fill", "orange"); this.attr("opacity", "0.8") })
+				);
 			});
+
+			//update label with counts;
+			$('#cluster_badge' + cluster_index).text(colony_sets[cluster_index].length);
+			$('#cluster_badge' +cluster_index).css('background-color', rgba_opaque(color_picker_colors[cluster_index]));
 		});
 
 	};
