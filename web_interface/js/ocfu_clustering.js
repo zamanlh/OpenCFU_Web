@@ -24,7 +24,11 @@ $(document).ready(function(){
 		myImg.src = imgURL;
 	});
 
-	$('#cancel_context').click(function() {$(context_menu).hide();});
+	$('#cancel_context').click(function(e) {
+		$(context_menu).hide(); 
+		//e.preventDefault(); 
+	});
+
 	$('#context_menu').hide();
 	$('#slider_radius').slider();
 	$('#slider_threshold').slider();
@@ -60,8 +64,6 @@ $(document).ready(function(){
 				}
 			});
 		
-		//TODO - recalc this?
-
 		to_cluster_g = to_cluster;
 		clustering_enabled(true);
 		cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
@@ -70,11 +72,13 @@ $(document).ready(function(){
 	$('#hide_controls').click(function(d) {
 		$('.controls').css("zIndex", 0);
 		d.preventDefault();
+
 	})
 
 	$('#show_controls').click(function(d) {
 		$('.controls').css("zIndex", 100);
 		d.preventDefault();
+
 	})
 
 	$('#run_ocfu').click(function(d) {
@@ -108,6 +112,7 @@ $(document).ready(function(){
 		});
 
 		d.preventDefault();
+
 	});
 
 
@@ -129,8 +134,11 @@ $(document).ready(function(){
 		paper.setViewBox(0, 0, myImg.width, myImg.height);
 
 		img.click(function(e) {
-			$('#context_menu').offset({left:e.pageX + 5, top:e.pageY + 5});
+			console.log([e.pageX, e.pageY]);
 			$('#context_menu').show(); 
+			$('#context_menu').offset({left:e.pageX + 5, top:e.pageY + 5});
+
+			console.log($('#context_menu').offset());
 			
 			var cluster_selector = $('#cluster_selector');
 
@@ -150,13 +158,14 @@ $(document).ready(function(){
 					$('#context_menu').hide(); 
 
 					inner_e.preventDefault();
+
 				});
 
 				cluster_selector.append(clust_button);
 			};
 
 			e.preventDefault();
-
+			//return false;
 		});
 	};
 });
@@ -174,7 +183,7 @@ var draw_colony = function(x, y, radius, cluster_index) {
 	colony_sets[cluster_index].push(
 		paper.circle(x, y, radius)
 		.data("cluster_index", cluster_index)
-		.attr("stroke-width", 1)
+		.attr("stroke-width", 0.3)
 		.attr("fill", color_picker_colors[cluster_index])
 		.click(function(d) { 
 			//$('#context_menu').offset({left:d.x + 5, top:d.y + 5});
@@ -301,14 +310,11 @@ var cluster = function (array_to_cluster, k, callback) {
 };
 
 
-//split up assigning clusters from what should be drawn!
-//TODO: we're only drawing things that w're clustering -- not things that have already been clusterd
 var draw_colonies = function(d_clusters, callback) {
 	 $('circle').remove();
 
 	 console.log(d_clusters);
 
-	 //TODO use these to count
 	_.forEach(colony_sets, function (set) {set.clear();});
 
 	_.forEach(d_clusters, function (cluster_val, cluster_index, cluster_coll) {
