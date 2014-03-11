@@ -1,412 +1,108 @@
 <head>
-<script src="js/jquery-1.11.0.js"></script>
-<script src="js/raphael.js"></script>
-<script src="js/clusterfck.js"></script>
-<script src="js/lodash.js"></script>
-<script src="js/bluebird.js"></script>
-<script src="js/bootstrap.js"></script>
-<script src="js/bootstrap-slider.js"></script>
-<script src="js/ocfu_defs.js"></script>
-<script src="js/bootstrap-colorpicker.js"></script>
+	<script src="js/jquery-1.11.0.js"></script>
+	<script src="js/raphael.js"></script>
+	<script src="js/clusterfck.js"></script>
+	<script src="js/lodash.js"></script>
+	<script src="js/bluebird.js"></script>
+	<script src="js/bootstrap.js"></script>
+	<script src="js/bootstrap-slider.js"></script>
+	<script src="js/ocfu_defs.js"></script>
+	<script src="js/bootstrap-colorpicker.js"></script>
+	<script src="js/ocfu_clustering.js"></script>
 
-
-<style>
-	body {
-		display: block;
-		margin: 0px;
-	}
-	.top-right-counts {
-		position: absolute;
-		left: 80%;
-		top: 15px;
-		z-index: 102;
-		width:auto;
-		height:auto;
-		width:auto;
-	}
-	.top-left-abs {
-		position: absolute;
-		left: 15px;
-		top: 15px;
-		z-index: 99;
-	}
-	.top-left {
-		position: relative;
-		left: 15px;
-		top: 15px;
-		z-index: 99;
-	}
-	.ctrl-group {
-		width: 300px;
-		z-index: 100;
-		padding: 0 0 0 0;
-	}
-	.kmeans-div {
-		position: relative;
-		width: 300px;
-		left: 15px;
-		top: 0px;
-		z-index: 100;
-	}
-	.padded{
-		padding: 10 10 10 10;
-	}
-	.colorp{
-		margin-top: 5px;
-	}
-
-	.cluster_label {
-		font-size: 20;
-		width: auto;
-		height: auto;
-	}
-	.stroked
-	{
-	    color: white;
-	    text-shadow:
-	    -1px -1px 0 #000,
-	    1px -1px 0 #000,
-	    -1px 1px 0 #000,
-	    1px 1px 0 #000;  
-	}
-
-</style>
-
-<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
-<link rel="stylesheet" type="text/css" href="css/bootstrap-slider.css">
-<link rel="stylesheet" type="text/css" href="css/bootstrap-colorpicker.css">
-
+	<link rel="stylesheet" type="text/css" href="css/ocfu.css">
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="css/bootstrap-slider.css">
+	<link rel="stylesheet" type="text/css" href="css/bootstrap-colorpicker.css">
 </head>
 
 <body>
 
-<div class="top-left-abs">
-	<a href="#" id="show_controls" class="btn btn-primary" role="button">Show controls</a>
-</div>
+	<div id="context_menu" class="panel context_menu padded">
+		<label class="form-group">Add New Colony:</label><br/>
+		<div id="cluster_selector" class="btn-group padded">
 
-<div class="top-right-counts" id="cluster_label_div">	
-
-</div>
-
-<form id="ocfu_form" role="form" method="POST", action="#">
-	<fieldset id="ocfu_fieldset">
-		<div id="controls" class="ctrl-group top-left panel padded controls">
-			<div class=""><h4>OpenCFU Controls</h4></div>
-		
-			<div class="padded">
-				<div class="">
-				<label class="form-group">Cell Radius Filter:</label>
-
-				<div class="input-group form-group">
-					<input name="slider_radius" id="slider_radius" type="text" class="span2 form-group" value="5,20" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="[3, 25]" data-slider-orientation="horizontal" data-slider-selection="after" data-slider-tooltip="show">
-				</div>
-
-				</div>
-
-				<div class="form-group">
-					<select class="form-control form-group" name="threshold">
-						<option value="reg">Regular</option>
-						<option value="inv">Inverted</option>
-						<option value="bil" selected>Bilateral</option>
-					</select>
-
-					<div class="">
-						<label class="form-group">Filter Threshold:</label>
-
-						<div class="input-group">
-							<input type="text" name="slider_threshold" id="slider_threshold" class="span2" value="5" data-slider-min="0" data-slider-max="20" data-slider-step="1" data-slider-value="3" data-slider-orientation="horizontal" data-slider-selection="after" data-slider-tooltip="show">
-							<span class="l">
-								<label><input type="checkbox" name="auto_threshold" value="1">Auto</label>
-							</span>
-						</div>
-					</div>
-				</div>
-
-				<a href="#" id="run_ocfu" class="btn btn-lrg btn-danger" role="button" type="submit">Run OpenCFU!</a>
-			<div>
 		</div>
-	</fieldset>
-</form>
+		<div class="padded">
+			<button class="btn btn-danger" id="cancel_context">Cancel</button>
+		</div>
+	</div>
 
+	<div class="top-left-abs">
+		<a href="#" id="show_controls" class="btn btn-primary" role="button">Show controls</a>
+	</div>
 
-<form id="kmeans_form" role="form" method="POST", action="#">
-	<fieldset id="kmeans_fieldset">
-		<div class="kmeans-div panel padded controls">
-			<div><h4>Kmeans Controls</h4></div>
-			<div>
-			<div class="padded">
-				<div class="">
-					<label class="form-group">Number of Clusters:</label>
+	<div class="top-right-counts" id="cluster_label_div">	
+
+	</div>
+
+	<form id="ocfu_form" role="form" method="POST", action="#">
+		<fieldset id="ocfu_fieldset">
+			<div id="controls" class="ctrl-group top-left panel padded controls">
+				<div class=""><h4>OpenCFU Controls</h4></div>
+			
+				<div class="padded">
+					<div class="">
+					<label class="form-group">Cell Radius Filter:</label>
 
 					<div class="input-group form-group">
-						<input name="slider_radius" id="slider_k" type="text" class="span2 form-group" value="1" data-slider-min="1" data-slider-max="5" data-slider-step="1" data-slider-value="1" data-slider-orientation="horizontal" data-slider-selection="after" data-slider-tooltip="show">
+						<input name="slider_radius" id="slider_radius" type="text" class="span2 form-group" value="5,20" data-slider-min="1" data-slider-max="40" data-slider-step="1" data-slider-value="[3, 25]" data-slider-orientation="horizontal" data-slider-selection="after" data-slider-tooltip="show">
 					</div>
-				</div>
 
+					</div>
+
+					<div class="form-group">
+						<select class="form-control form-group" name="threshold">
+							<option value="reg">Regular</option>
+							<option value="inv">Inverted</option>
+							<option value="bil" selected>Bilateral</option>
+						</select>
+
+						<div class="">
+							<label class="form-group">Filter Threshold:</label>
+
+							<div class="input-group">
+								<input type="text" name="slider_threshold" id="slider_threshold" class="span2" value="5" data-slider-min="0" data-slider-max="20" data-slider-step="1" data-slider-value="3" data-slider-orientation="horizontal" data-slider-selection="after" data-slider-tooltip="show">
+								<span class="l">
+									<label><input type="checkbox" name="auto_threshold" value="1">Auto</label>
+								</span>
+							</div>
+						</div>
+					</div>
+
+					<a href="#" id="run_ocfu" class="btn btn-lrg btn-danger" role="button" type="submit">Run OpenCFU!</a>
 				<div>
-					<div> 
-					<label class="form-group">Cluster Colors:</label>
-					</div>
-					<div id="cluster_colors">
-					</div>
-				</div>
-				<br/>
-				<a href="#" id="hide_controls" class="btn btn-sml btn-info" role="button">Hide controls</a>
-
 			</div>
-		</div>
-	</fieldset>
-</form>
+		</fieldset>
+	</form>
 
 
+	<form id="kmeans_form" role="form" method="POST", action="#">
+		<fieldset id="kmeans_fieldset">
+			<div class="kmeans-div panel padded controls">
+				<div><h4>Kmeans Controls</h4></div>
+				<div>
+				<div class="padded">
+					<div class="">
+						<label class="form-group">Number of Clusters:</label>
+
+						<div class="input-group form-group">
+							<input name="slider_radius" id="slider_k" type="text" class="span2 form-group" value="1" data-slider-min="1" data-slider-max="5" data-slider-step="1" data-slider-value="1" data-slider-orientation="horizontal" data-slider-selection="after" data-slider-tooltip="show">
+						</div>
+					</div>
+
+					<div>
+						<div> 
+						<label class="form-group">Cluster Colors:</label>
+						</div>
+						<div id="cluster_colors">
+						</div>
+					</div>
+					<br/>
+					<a href="#" id="hide_controls" class="btn btn-sml btn-info" role="button">Hide controls</a>
+
+				</div>
+			</div>
+		</fieldset>
+	</form>
 </body>
-
-<script>
-
-	var rgba_opaque = function(rgba_col) {
-		return rgba_col.replace(/[^,]+(?=\))/, '1.0')
-	};
-
-	var color_picker_colors = ["rgba(255,0,0,0.3)", "rgba(0,255,0,0.3)", "rgba(0,0,255,0.3)", "rgba(255,255,0,0.3)", "rgba(255,0,255,0.3)"];
-
-	var add_cluster_counters = function(num_counters) {
-		$('.cluster_label').remove();
-		var cluster_label_div = $('#cluster_label_div');
-
-		for (var i=0; i < num_counters; i++) {
-			var c_badge = document.createElement('span');
-			c_badge.className="badge cluster_label stroked";
-			c_badge.cluster_id = i;
-			c_badge.id = "cluster_badge" + i;
-			c_badge.style.fontSize="24px"
-			$(c_badge).text("working...");
-
-			cluster_label_div.append(c_badge);
-		};
-	};
-
-	var clustering_enabled = function(bool_enable) {
-		if(bool_enable) {
-			$('#kmeans_fieldset').prop("disabled", false);
-			$('#slider_k').slider('enable');
-			$('#cluster_label_div').show();
-
-		
-		} else {
-			$('#kmeans_fieldset').prop("disabled", true);
-			$('#slider_k').slider('disable');
-			$('#cluster_label_div').hide();
-		};
-	};
-
-	var add_color_sliders = function(num_sliders) {
-		$('.colorp').remove();
-
-		var color_div = $('#cluster_colors');
-
-
-		for (var i=0; i < num_sliders; i++) {
-			var new_picker = document.createElement('input');
-			new_picker.className="colorp";
-			new_picker.cluster_id = i;
-			new_picker.id = "clust_color" + i;
-			new_picker.value=color_picker_colors[i];
-			color_div[0].appendChild(new_picker);
-
-			var cp = $(new_picker).colorpicker({format: "rgba"});
-			cp.on("changeColor", function(ev) {
-				color_picker_colors[this.cluster_id] = ev.color.toString();
-				draw_colonies(clusters);
-		 	});
-		};
-
-		add_cluster_counters(num_sliders);
-
-		colony_sets = [];
-		for (var i=0; i<num_sliders;i++) {
-			colony_sets.push(paper.set());
-		};
-
-	};
-
-
-	$('#slider_radius').slider();
-	$('#slider_threshold').slider();
-	
-	$('#slider_k').slider().on("slideStop", function(ev) {
-		add_color_sliders(ev.value);
-		cluster(to_cluster_g, ev.value, draw_colonies);
-	});
-
-    $(function(){
-        add_color_sliders(1);	
-    });
-
-	$('#hide_controls').click(function(d) {
-		$('.controls').css("zIndex", 0);
-		d.preventDefault();
-	})
-
-	$('#show_controls').click(function(d) {
-		$('.controls').css("zIndex", 100);
-		d.preventDefault();
-	})
-
-	$('#run_ocfu').click(function(d) {		
-		clustering_enabled(false);
-		//disable Controls while waiting for response?
-
-		//remove old circles
-		$('circle').remove();
-
-		//classify plate!
-
-
-		$.getJSON(api_server + "/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize(), function(data){
-			var to_cluster = [];
-
-			data_set = data;
-			_.forEach(data, 
-				function(val, index, collection) {
-					if (val['IsValid'])
-					{
-						var tmp = [val['Hue'], val['Saturation'], val['Rmean'], val['Gmean'], val['Bmean']]
-						tmp.idx = index
-
-						to_cluster.push(tmp);
-					}
-				});
-
-			to_cluster_g = to_cluster;
-			clustering_enabled(true);
-			cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
-		});
-
-		d.preventDefault();
-	});
-
-
-	// First, checks if it isn't implemented yet.
-	if (!String.prototype.format) {
-		String.prototype.format = function() {
-	 		var args = arguments;
-			return this.replace(/{(\d+)}/g, function(match, number) { 
-				return typeof args[number] != 'undefined'
-				? args[number]
-				: match
-				;
-			});
-		};
-	}
-
-	var data_set;
- 	var paper;
-	var image;
-	var myImg;
-	var imgURL;
-	var clusters;
-	var to_cluster_g;
-
-	myImg = new Image();
-
-	myImg.onload = function() {
-		paper.image(imgURL, 0,0, myImg.width, myImg.height);
-		paper.setViewBox(0, 0, myImg.width, myImg.height);
-	};
-
-	paper = Raphael(0,0, 1000, 800);
-
-	var colony_sets = [paper.set()];
-
-
-	var urlParams;
-
-	(window.onpopstate = function () {
-		var match,
-		pl = /\+/g,  // Regex for replacing addition symbol with a space
-		search = /([^&=]+)=?([^&]*)/g,
-			decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
-			query  = window.location.search.substring(1);
-
-		urlParams = {};
-		while (match = search.exec(query))
-			urlParams[decode(match[1])] = decode(match[2]);
-	})();
-
-
-	var cluster = function (array_to_cluster, k, callback) {		
-		var t_clusters = clusterfck.kmeans(array_to_cluster, k);
-
-		callback(t_clusters);
-
-	};
-
-
-	//classify plate!
-	clustering_enabled(false);
-	$.getJSON( api_server + "/run_open_cfu/" + urlParams['token'], function(data){
-		clustering_enabled(false);
-
-		var to_cluster = [];
-
-		data_set = data;
-		_.forEach(data, 
-			function(val, index, collection) {
-				if (val['IsValid'])
-				{
-					var tmp = [val['Hue'], val['Saturation'], val['Rmean'], val['Gmean'], val['Bmean']]
-					tmp.idx = index
-
-					to_cluster.push(tmp);
-				}
-			});
-		
-		//TODO - recalc this?
-
-		to_cluster_g = to_cluster;
-		clustering_enabled(true);
-
-
-		cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
-	});
-
-	var draw_colonies = function(d_clusters) {
-
-		 $('circle').remove();
-
-		 //TODO use these to count
-		 _.forEach(colony_sets, function (set) {set.clear();});
-
-
-		clusters = d_clusters;	
-		_.forEach(d_clusters, function (cluster_val, cluster_index, cluster_coll) {
-
-			_.forEach(cluster_val, function (colony_val, colony_index, colony_coll) {
-				var val = data_set[colony_val.idx];
-
-				colony_sets[cluster_index].push(
-
-					paper.circle(val['X'], val['Y']	, val['Radius']*1.3)
-						.data("hue", val['Hue'])
-						.data("cluster_index", cluster_index)
-						.attr("stroke-width", 1)
-						.attr("fill", color_picker_colors[cluster_index])
-						.click(function() { this.attr("fill", "orange"); this.attr("opacity", "0.8") })
-				);
-			});
-
-			//update label with counts;
-			$('#cluster_badge' + cluster_index).text(colony_sets[cluster_index].length);
-			$('#cluster_badge' +cluster_index).css('background-color', rgba_opaque(color_picker_colors[cluster_index]));
-		});
-
-	};
-
-	//load appropriate image into canvas
-	$.getJSON(api_server + "/get_plate/" + urlParams['token'], function(data){
-		imgURL = api_server + '/' +  data.filename;
-		myImg.src = imgURL;
-	});
-
-</script>
-
