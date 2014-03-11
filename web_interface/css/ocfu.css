@@ -1,0 +1,70 @@
+body {
+	display: block;
+	margin: 0px;
+}
+.top-right-counts {
+	position: absolute;
+	left: 80%;
+	top: 15px;
+	z-index: 102;
+	width:auto;
+	height:auto;
+	width:auto;
+}
+.top-left-abs {
+	position: absolute;
+	left: 15px;
+	top: 15px;
+	z-index: 99;
+}
+.top-left {
+	position: relative;
+	left: 15px;
+	top: 15px;
+	z-index: 99;
+}
+.ctrl-group {
+	width: 300px;
+	z-index: 100;
+	padding: 0 0 0 0;
+}
+.kmeans-div {
+	position: relative;
+	width: 300px;
+	left: 15px;
+	top: 0px;
+	z-index: 100;
+}
+.padded{
+	padding: 10 10 10 10;
+}
+.colorp{
+	margin-top: 5px;
+}
+
+.cluster_label {
+	font-size: 20;
+	width: auto;
+	height: auto;
+}
+.stroked {
+	color: white;
+	text-shadow:
+	-1px -1px 0 #000,
+	1px -1px 0 #000,
+	-1px 1px 0 #000,
+	1px 1px 0 #000;  
+}
+.context_menu {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	z-index: 99;
+	width: auto;
+	height: auto;
+	padding: 10 10 10 10;
+}
+.cluster_button {
+	width: 50px;
+	height:25px;
+}
