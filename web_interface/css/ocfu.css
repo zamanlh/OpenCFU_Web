@@ -59,10 +59,9 @@ body {
 	position: absolute;
 	left: 0px;
 	top: 0px;
-	z-index: 99;
-	width: auto;
+	z-index: 101;
+	width: 220px;
 	height: auto;
-	padding: 10 10 10 10;
 }
 .cluster_button {
 	width: 50px;
