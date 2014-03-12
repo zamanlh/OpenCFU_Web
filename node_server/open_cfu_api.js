@@ -122,8 +122,13 @@ app.post('/upload_plate', express.bodyParser({uploadDir:'upload_temp'}), functio
 
 });
 
-//TODO: add support for all the open_cfu command line options!
-//what to do if run again on same plate??
+//TODO
+app.post('/save_colonies/:token', function(request, response) {
+	console.log(request.params);
+});
+
+//UPDATE: Don't actually save these to database, just return colonies... 
+//only save classified colonies after annotation
 app.get('/run_open_cfu/:token', function(request, response) {
 
 	var query = request.url.split('?')[1];
@@ -131,18 +136,6 @@ app.get('/run_open_cfu/:token', function(request, response) {
 	console.log(ocfu_params);
 
 	var ocfu_command = 'opencfu -t3 -R25 -mauto -dbil -i';
-/**
-{ slider_radius: '[5, 20]',
-  threshold: 'reg',
-  slider_threshold: '5' }
-
-  { slider_radius: '[5, 20]',
-  auto_max: '1',
-  threshold: 'reg',
-  slider_threshold: '5',
-  auto_threshold: '1' }
-
-**/
 
 	if (ocfu_params.slider_radius){
 		ocfu_params.slider_radius = ocfu_params.slider_radius.split(',');
@@ -183,18 +176,8 @@ app.get('/run_open_cfu/:token', function(request, response) {
 					csv().from.string(stdout, {comment: '#'})
 					.to.array( function(data) {
 						var ocfu_calls = csv_to_json(data);
-
-						reql(r.table('plates').get(request.params.token).update({colonies: ocfu_calls})).then(function(result){
-							response.writeHead(200, {'Content-Type': 'application/json'});
-							response.end(JSON.stringify(ocfu_calls));
-						}).error(function (err) {
-							console.log(err);
-							response.writeHead(496, {'Content-Type': 'application/json'});
-							response.end(JSON.stringify({'error': 'database threw error, see dberror', dberror: err}));
-						}).catch(function (err) {
-							response.writeHead(496, {'Content-Type': 'application/json'});
-							response.end(JSON.stringify({'error': 'database threw error, see dberror', dberror: err}));
-						});
+						response.writeHead(200, {'Content-Type': 'application/json'});
+						response.end(JSON.stringify(ocfu_calls));
 					});
 
 					child.on('close', function(code, signal) {

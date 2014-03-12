@@ -82,15 +82,19 @@ $(document).ready(function(){
 	})
 
 	$('#run_ocfu').click(function(d) {
+		//disable Controls while waiting for response
 		clustering_enabled(false);
-		//disable Controls while waiting for response?
 
 		//remove old circles
 		$('circle').remove();
 
+
+		//TODO - Reset manual_colony_arrays?
+		for (var i=0; i < max_clusters; i++) {
+			manual_colony_arrays[i] = [];
+		};
+
 		//classify plate!
-
-
 		$.getJSON(api_server + "/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize(), function(data){
 			var to_cluster = [];
 
@@ -235,13 +239,19 @@ var add_cluster_counters = function(num_counters) {
 var clustering_enabled = function(bool_enable) {
 	if(bool_enable) {
 		$('#kmeans_fieldset').prop("disabled", false);
+		$('#ocfu_fieldset').prop("disabled", false);
 		$('#slider_k').slider('enable');
 		$('#cluster_label_div').show();
+		$('#slider_radius').slider('enable');
+		$('#slider_threshold').slider('enable');
 	
 	} else {
 		$('#kmeans_fieldset').prop("disabled", true);
 		$('#slider_k').slider('disable');
 		$('#cluster_label_div').hide();
+		$('#ocfu_fieldset').prop("disabled", true);
+		$('#slider_radius').slider('disable');
+		$('#slider_threshold').slider('disable');
 	};
 };
 

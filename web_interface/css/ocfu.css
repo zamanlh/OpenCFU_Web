@@ -24,13 +24,13 @@ body {
 	z-index: 99;
 }
 .ctrl-group {
-	width: 300px;
+	width: 310px;
 	z-index: 100;
 	padding: 0 0 0 0;
 }
 .kmeans-div {
 	position: relative;
-	width: 300px;
+	width: 310px;
 	left: 15px;
 	top: 0px;
 	z-index: 100;
@@ -60,10 +60,10 @@ body {
 	left: 0px;
 	top: 0px;
 	z-index: 101;
-	width: 220px;
+	width: 190px;
 	height: auto;
 }
 .cluster_button {
-	width: 50px;
+	width: 20px;
 	height:25px;
 }
