@@ -26,12 +26,16 @@ $(document).ready(function(){
 
 	$('#cancel_context').click(function(e) {
 		$(context_menu).hide(); 
+		$('#remove_colony_div').hide();
 		//e.preventDefault(); 
 	});
 
 	$('#context_menu').hide();
+	$('#remove_colony_div').hide();
+
 	$('#slider_radius').slider();
 	$('#slider_threshold').slider();
+
 
 	$('#slider_k').slider().on("slideStop", function(ev) {
 		add_color_sliders(ev.value);
@@ -112,7 +116,7 @@ $(document).ready(function(){
 
 			to_cluster_g = to_cluster;
 			clustering_enabled(true);
-			cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
+			console(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
 		});
 
 		d.preventDefault();
@@ -145,6 +149,8 @@ $(document).ready(function(){
 			console.log($('#context_menu').offset());
 			
 			var cluster_selector = $('#cluster_selector');
+			var cluster_selector_text = $('#cluster_selector_text')
+			cluster_selector_text.text("Add Colony");
 
 			cluster_selector.empty();
 
@@ -156,10 +162,12 @@ $(document).ready(function(){
 				clust_button.style.backgroundColor = rgba_opaque(color_picker_colors[i]);
 				$(clust_button).click(function(inner_e) {
 					var real_point = cursorPoint(e);
-					add_colony(real_point.x, real_point.y, this.cluster_index);
-					draw_colony(real_point.x , real_point.y, added_colony_radius, this.cluster_index, update_cluster_counters);
+					var new_col_idx = add_colony({X:real_point.x, Y:real_point.y, Radius:15}, this.cluster_index);
+					console.log(new_col_idx);
+					draw_colony(data_set[new_col_idx], new_col_idx);
 
 					$('#context_menu').hide(); 
+
 
 					inner_e.preventDefault();
 
@@ -175,31 +183,91 @@ $(document).ready(function(){
 });
 
 
-var add_colony = function(x, y, cluster_index, callback) {
-	//save to data_set or just save to database and have the callback refresh the dataset?
 
-	colony = {X: x, Y:y, IsValid:1, Cluster_Index:cluster_index};
-	manual_colony_arrays[cluster_index].push(colony);
-	data_set.push(colony); //where is this
+var remove_colony = function(colony_element) {
+	console.log(colony_element);
 };
 
-var draw_colony = function(x, y, radius, cluster_index) {
-	colony_sets[cluster_index].push(
-		paper.circle(x, y, radius)
-		.data("cluster_index", cluster_index)
+var add_colony = function(colony_object, cluster_index) {
+	//save to data_set or just save to database and have the callback refresh the dataset?
+
+	var colony = {X: colony_object.X, Y:colony_object.Y, IsValid:1, Radius:colony_object.Radius, Cluster_Index:cluster_index, Clustered_Manually:true};
+	data_set.push(colony); //where is this
+
+	return data_set.length - 1;
+};
+
+var draw_colony = function(colony_object, data_set_index) {
+	colony_sets[colony_object.Cluster_Index].push(
+		paper.circle(colony_object.X, colony_object.Y, colony_object.Radius)
+		.data("cluster_index", colony_object.Cluster_Index)
+		.data("data_set_index", data_set_index)
 		.attr("stroke-width", 0.3)
-		.attr("fill", color_picker_colors[cluster_index])
-		.click(function(d) { 
+		.attr("fill", color_picker_colors[colony_object.Cluster_Index])
+		.click(function(e) { 
 			//$('#context_menu').offset({left:d.x + 5, top:d.y + 5});
 			//$('#context_menu').show(); 
-			console.log("colony clicked!");
+			$('#context_menu').show(); 
+			$('#context_menu').offset({left:e.pageX + 5, top:e.pageY + 5});
 
-			//TODO
-			//change cluster?
-			//remove
-			//split?
+			
+			var cluster_selector = $('#cluster_selector');
 
-			d.stopPropagation()
+			var cluster_selector_text = $('#cluster_selector_text')
+
+			var button_group_selector = $('#button_group');
+
+			var remove_colony_div = $('#remove_colony_div');
+
+			var remove_colony_btn = $('#remove_colony_btn');
+
+			cluster_selector_text.text("Reclassify Colony");
+			
+			cluster_selector.empty();
+
+
+			remove_colony_div.show();
+
+			//clicked colony
+			var clust_idx = this.data("cluster_index");	
+			var data_set_index = this.data("data_set_index");
+
+			var _this = this;
+			for (var i=0;i < clusters.length; i++) {
+				var clust_button = document.createElement("button");
+				clust_button.className = "btn btn-primary cluster_button";
+				clust_button.cluster_index = i;
+				clust_button.style.backgroundColor = rgba_opaque(color_picker_colors[i]);
+				$(clust_button).click(function(inner_e) {
+					
+					data_set[data_set_index].Cluster_Index = this.cluster_index;
+					draw_colonies();
+					update_cluster_counters();
+
+					$(context_menu).hide(); 
+					$('#remove_colony_div').hide();
+
+
+					inner_e.preventDefault();
+
+				});
+
+				cluster_selector.append(clust_button);
+			};
+
+			$(remove_colony_btn).click(function(inner_e) {
+				//delete colony for reals
+				colony_sets[clust_idx].exclude(_this);
+				data_set[data_set_index].IsValid = false;
+				_this.remove();
+				update_cluster_counters();
+				$(context_menu).hide(); 
+				$('#remove_colony_div').hide();
+
+			});
+
+
+			e.stopPropagation();
 
 		})
 	);
@@ -315,29 +383,29 @@ var urlParams;
 var cluster = function (array_to_cluster, k, callback) {		
 	var t_clusters = clusterfck.kmeans(array_to_cluster, k);
 	clusters = t_clusters;
-	if(callback) { callback(t_clusters); }
+
+
+	_.forEach(t_clusters, function (cluster_val, cluster_index, cluster_coll) {
+		_.forEach(cluster_val, function (colony_val, colony_index, colony_coll) {
+			data_set[colony_val.idx].Cluster_Index = cluster_index;
+		});
+	});
+
+	if(callback) { callback(); }
 
 };
 
 
-var draw_colonies = function(d_clusters, callback) {
+var draw_colonies = function(callback) {
 	 $('circle').remove();
-
-	 console.log(d_clusters);
 
 	_.forEach(colony_sets, function (set) {set.clear();});
 
-	_.forEach(d_clusters, function (cluster_val, cluster_index, cluster_coll) {
-		_.forEach(cluster_val, function (colony_val, colony_index, colony_coll) {
-			var val = data_set[colony_val.idx];
-			draw_colony(val.X, val.Y, val.Radius, cluster_index);
-		});
-	});
-
-	_.forEach(manual_colony_arrays, function(m_cluster, m_cluster_index, m_cluster_coll) {
-		_.forEach(m_cluster, function(m_colony_val, m_colony_index, m_colony_coll) {
-			draw_colony(m_colony_val.X, m_colony_val.Y, added_colony_radius, Math.min(m_cluster_index, d_clusters.length-1));;
-		});
+	//TODO Bad syntax
+	_.forEach(data_set, function (colony, colony_index, colony_set) {
+		if(colony.IsValid) {
+			draw_colony(data_set[colony_index], colony_index);
+		};
 	});
 
 	if(callback) callback();
