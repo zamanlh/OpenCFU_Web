@@ -11,17 +11,22 @@ var cursorPoint;
 var colony_sets;
 var color_picker_colors = ["rgba(255,0,0,0.3)", "rgba(0,255,0,0.3)", "rgba(0,0,255,0.3)", "rgba(255,255,0,0.3)", "rgba(255,0,255,0.3)"];
 var manual_colony_arrays = [];
+var urlParams;
+var extra_data;
 
 $(document).ready(function(){
 	for (var i=0; i < max_clusters; i++) {
 		manual_colony_arrays[i] = [];
 	};
 
-
 	//load appropriate image into canvas
 	$.getJSON(api_server + "/get_plate/" + urlParams['token'], function(data){
 		imgURL = api_server + '/' +  data.filename;
 		myImg.src = imgURL;
+
+		extra_data = data;
+
+		//TODO Get some more data here??
 	});
 
 	$('#cancel_context').click(function(e) {
@@ -36,6 +41,27 @@ $(document).ready(function(){
 	$('#slider_radius').slider();
 	$('#slider_threshold').slider();
 
+	$('#save_colonies').click(function(e) {
+		var to_save = {colonies: JSON.stringify(data_set)};
+
+
+		var cluster_data_array = $("#kmeans_form").serializeArray();
+		var cluster_data_obj = {};
+
+		_.forEach(cluster_data_array, function(param_obj, param_idx, param_list) {
+			cluster_data_obj[param_obj['name']] = param_obj['value'];
+		});
+
+		to_save['clustering_params'] = cluster_data_obj;
+
+		console.log(cluster_data_obj);
+
+		$.post(api_server + '/save_colonies/' + urlParams['token'], to_save, function(data) {
+
+			return;
+		});
+
+	});
 
 	$('#slider_k').slider().on("slideStop", function(ev) {
 		add_color_sliders(ev.value);
@@ -48,10 +74,11 @@ $(document).ready(function(){
 	//init color sliders
 	add_color_sliders($('#slider_k').slider('getValue'));
 
+
 	//classify plate!
+	//TODO: only do this if we don't have data already??
 	$.getJSON( api_server + "/run_open_cfu/" + urlParams['token'], function(data){
 
-		//TODO: LOAD MANUALLY CLASSIFIED COLONIES SEPERATELY???
 		clustering_enabled(false);
 
 		var to_cluster = [];
@@ -71,6 +98,8 @@ $(document).ready(function(){
 		to_cluster_g = to_cluster;
 		clustering_enabled(true);
 		cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
+		update_cluster_counters();
+
 	});
 
 	$('#hide_controls').click(function(d) {
@@ -85,18 +114,14 @@ $(document).ready(function(){
 
 	})
 
+
+	//TODO: Save ocfu params to database here!
 	$('#run_ocfu').click(function(d) {
 		//disable Controls while waiting for response
 		clustering_enabled(false);
 
 		//remove old circles
 		$('circle').remove();
-
-
-		//TODO - Reset manual_colony_arrays?
-		for (var i=0; i < max_clusters; i++) {
-			manual_colony_arrays[i] = [];
-		};
 
 		//classify plate!
 		$.getJSON(api_server + "/run_open_cfu/" + urlParams['token']+ "?" + $("#ocfu_form").serialize(), function(data){
@@ -116,7 +141,9 @@ $(document).ready(function(){
 
 			to_cluster_g = to_cluster;
 			clustering_enabled(true);
-			console(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
+			cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
+			update_cluster_counters();
+
 		});
 
 		d.preventDefault();
@@ -182,15 +209,7 @@ $(document).ready(function(){
 	};
 });
 
-
-
-var remove_colony = function(colony_element) {
-	console.log(colony_element);
-};
-
 var add_colony = function(colony_object, cluster_index) {
-	//save to data_set or just save to database and have the callback refresh the dataset?
-
 	var colony = {X: colony_object.X, Y:colony_object.Y, IsValid:1, Radius:colony_object.Radius, Cluster_Index:cluster_index, Clustered_Manually:true};
 	data_set.push(colony); //where is this
 
@@ -333,19 +352,19 @@ var add_color_sliders = function(num_sliders) {
 		new_picker.className="colorp";
 		new_picker.cluster_id = i;
 		new_picker.id = "clust_color" + i;
+		new_picker.name = "clust_color_" + i;
 		new_picker.value=color_picker_colors[i];
 		$(color_div).append(new_picker);
 
 		var cp = $(new_picker).colorpicker({format: "rgba"});
 		cp.on("changeColor", function(ev) {
 			color_picker_colors[this.cluster_id] = ev.color.toString();
-			draw_colonies(clusters);
+			draw_colonies();
 	 	});
 	};
 
 	add_cluster_counters(num_sliders);
 
-	//manual_colony_arrays = [];
 	for (var i=0; i<num_sliders;i++) {
 		colony_sets.push(paper.set());
 	};
@@ -365,7 +384,6 @@ if (!String.prototype.format) {
 	};
 }
 
-var urlParams;
 
 (window.onpopstate = function () {
 	var match,
@@ -384,7 +402,6 @@ var cluster = function (array_to_cluster, k, callback) {
 	var t_clusters = clusterfck.kmeans(array_to_cluster, k);
 	clusters = t_clusters;
 
-
 	_.forEach(t_clusters, function (cluster_val, cluster_index, cluster_coll) {
 		_.forEach(cluster_val, function (colony_val, colony_index, colony_coll) {
 			data_set[colony_val.idx].Cluster_Index = cluster_index;
@@ -401,7 +418,6 @@ var draw_colonies = function(callback) {
 
 	_.forEach(colony_sets, function (set) {set.clear();});
 
-	//TODO Bad syntax
 	_.forEach(data_set, function (colony, colony_index, colony_set) {
 		if(colony.IsValid) {
 			draw_colony(data_set[colony_index], colony_index);

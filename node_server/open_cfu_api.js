@@ -122,13 +122,27 @@ app.post('/upload_plate', express.bodyParser({uploadDir:'upload_temp'}), functio
 
 });
 
-//TODO
-app.post('/save_colonies/:token', function(request, response) {
-	console.log(request.params);
+app.post('/save_colonies/:token', express.bodyParser(), function(request, response) {
+	console.log("hello!");
+	var update_request = r.table('plates').get(request.params.token).update({colonies: request.body.colonies, clustering_params: request.body.clustering_params});
+
+	reql(update_request)
+	.then(function(reql_res) {
+		response.writeHead(200, {'Content-Type': 'application/json'});
+		response.end(JSON.stringify(reql_res));
+	}).error(function (err) {
+		response.writeHead(496, {'Content-Type': 'application/json'});
+		response.end(JSON.stringify({'error': 'database threw error, see dberror', dberror: err}));
+	}).catch(function (err) {
+		response.writeHead(496, {'Content-Type': 'application/json'});
+		response.end(JSON.stringify({'error': 'database threw error, see dberror', dberror: err}));
+	});
+
 });
 
 //UPDATE: Don't actually save these to database, just return colonies... 
 //only save classified colonies after annotation
+//TODO Save param values here...
 app.get('/run_open_cfu/:token', function(request, response) {
 
 	var query = request.url.split('?')[1];
@@ -193,16 +207,8 @@ app.get('/run_open_cfu/:token', function(request, response) {
 	});
 });
 
-// Your own super cool function
-var logger = function(req, res, next) {
-    console.log("GOT REQUEST !");
-    console.log(req.url);
-    console.log(req.body);
-    next(); // Passing the request to the next handler in the stack.
-}
 	
 app.configure(function() {
-	app.use(logger);
 	app.use(express.json());
 	app.use(express.urlencoded());	
 	app.use(cors());
