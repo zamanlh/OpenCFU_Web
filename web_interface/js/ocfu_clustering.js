@@ -3,7 +3,7 @@ var paper;
 var image;
 var myImg;
 var imgURL;
-var clusters;
+var clusters = [];
 var to_cluster_g;
 var svg;
 var pt;
@@ -13,18 +13,60 @@ var color_picker_colors = ["rgba(255,0,0,0.3)", "rgba(0,255,0,0.3)", "rgba(0,0,2
 var manual_colony_arrays = [];
 var urlParams;
 var extra_data;
+var run_first_ocfu = true;
 
 $(document).ready(function(){
 	for (var i=0; i < max_clusters; i++) {
 		manual_colony_arrays[i] = [];
 	};
+	
+	$('#slider_k').slider().on("slideStop", function(ev) {
+		add_color_sliders(ev.value);
+		cluster(to_cluster_g, ev.value, draw_colonies);
+	});
+
 
 	//load appropriate image into canvas
 	$.getJSON(api_server + "/get_plate/" + urlParams['token'], function(data){
-		imgURL = api_server + '/' +  data.filename;
+		extra_data = data;
+
+		//load image 
+		imgURL = api_server + '/' +  extra_data.filename;
 		myImg.src = imgURL;
 
-		extra_data = data;
+
+		//setup clustering params if we have some saved
+		if (extra_data['clustering_params']) {
+			var num_clusters = parseInt(extra_data['clustering_params']['kmeans_k']);
+
+			console.log("hello????");
+			$('#slider_k').slider('setValue', num_clusters);
+
+
+			//init color sliders
+			for (var i=0; i< num_clusters; i++) {
+				var temp_color = extra_data['clustering_params']['clust_color_{0}'.format(i)];
+				if(temp_color) {
+					color_picker_colors[i] = temp_color;
+				};
+			};
+
+			add_color_sliders(num_clusters);
+
+			for(var i=0; i<num_clusters; i++){
+				clusters.push([]);
+			};
+
+			//setup colonies if we have them already saved!
+			if(extra_data['colonies']) {
+				data_set = JSON.parse(extra_data['colonies']);
+				run_first_ocfu = false;
+			};
+
+		} else {
+			add_color_sliders(1);
+
+		};
 
 		//TODO Get some more data here??
 	});
@@ -63,44 +105,43 @@ $(document).ready(function(){
 
 	});
 
-	$('#slider_k').slider().on("slideStop", function(ev) {
-		add_color_sliders(ev.value);
-		cluster(to_cluster_g, ev.value, draw_colonies);
-	});
-	
 	paper = Raphael(0,0, canvas_width, canvas_height);
 	colony_sets = [paper.set()];
-
-	//init color sliders
-	add_color_sliders($('#slider_k').slider('getValue'));
 
 
 	//classify plate!
 	//TODO: only do this if we don't have data already??
 	$.getJSON( api_server + "/run_open_cfu/" + urlParams['token'], function(data){
 
-		clustering_enabled(false);
+		if(run_first_ocfu) {
+			console.log("abbount to run");
+			clustering_enabled(false);
 
-		var to_cluster = [];
+			var to_cluster = [];
 
-		data_set = data;
-		_.forEach(data, 
-			function(val, index, collection) {
-				if (val['IsValid'] && val['Cluster_Index'] == undefined)
-				{
-					var tmp = [val['Hue'], val['Saturation'], val['Rmean'], val['Gmean'], val['Bmean']]
-					tmp.idx = index
+			data_set = data;
+			_.forEach(data, 
+				function(val, index, collection) {
+					if (val['IsValid'] && val['Cluster_Index'] == undefined)
+					{
+						var tmp = [val['Hue'], val['Saturation'], val['Rmean'], val['Gmean'], val['Bmean']]
+						tmp.idx = index
 
-					to_cluster.push(tmp);
-				}
-			});
-		
-		to_cluster_g = to_cluster;
-		clustering_enabled(true);
-		cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
-		update_cluster_counters();
+						to_cluster.push(tmp);
+					}
+				});
+			
+			to_cluster_g = to_cluster;
+			clustering_enabled(true);
+			cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
+			update_cluster_counters();
+		} else {
+			draw_colonies();
+			update_cluster_counters();
+		};
 
 	});
+
 
 	$('#hide_controls').click(function(d) {
 		$('.controls').css("zIndex", 0);
@@ -154,6 +195,7 @@ $(document).ready(function(){
 	myImg = new Image();
 
 	myImg.onload = function() {
+		myImg.style
 
 		svg = document.querySelector('svg');
 		pt = svg.createSVGPoint();
@@ -351,7 +393,7 @@ var add_color_sliders = function(num_sliders) {
 		var new_picker = document.createElement('input');
 		new_picker.className="colorp";
 		new_picker.cluster_id = i;
-		new_picker.id = "clust_color" + i;
+		new_picker.id = "clust_color_" + i;
 		new_picker.name = "clust_color_" + i;
 		new_picker.value=color_picker_colors[i];
 		$(color_div).append(new_picker);
@@ -371,7 +413,7 @@ var add_color_sliders = function(num_sliders) {
 
 };
 
-// First, checks if it isn't implemented yet.
+
 if (!String.prototype.format) {
 	String.prototype.format = function() {
  		var args = arguments;
@@ -383,6 +425,13 @@ if (!String.prototype.format) {
 		});
 	};
 }
+if (typeof String.prototype.startsWith != 'function') {
+  // see below for better implementation!
+  String.prototype.startsWith = function (str){
+    return this.indexOf(str) == 0;
+  };
+}
+
 
 
 (window.onpopstate = function () {
