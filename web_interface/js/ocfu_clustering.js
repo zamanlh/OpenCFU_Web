@@ -15,6 +15,18 @@ var urlParams;
 var extra_data;
 var run_first_ocfu = true;
 
+(window.onpopstate = function () {
+	var match,
+	pl = /\+/g,  // Regex for replacing addition symbol with a space
+	search = /([^&=]+)=?([^&]*)/g,
+		decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
+		query  = window.location.search.substring(1);
+
+	urlParams = {};
+	while (match = search.exec(query))
+		urlParams[decode(match[1])] = decode(match[2]);
+})();
+
 $(document).ready(function(){
 	for (var i=0; i < max_clusters; i++) {
 		manual_colony_arrays[i] = [];
@@ -115,7 +127,6 @@ $(document).ready(function(){
 
 		if(run_first_ocfu) {
 			console.log("abbount to run");
-			clustering_enabled(false);
 
 			var to_cluster = [];
 
@@ -132,7 +143,6 @@ $(document).ready(function(){
 				});
 			
 			to_cluster_g = to_cluster;
-			clustering_enabled(true);
 			cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
 			update_cluster_counters();
 		} else {
@@ -159,7 +169,6 @@ $(document).ready(function(){
 	//TODO: Save ocfu params to database here!
 	$('#run_ocfu').click(function(d) {
 		//disable Controls while waiting for response
-		clustering_enabled(false);
 
 		//remove old circles
 		$('circle').remove();
@@ -181,7 +190,6 @@ $(document).ready(function(){
 				});
 
 			to_cluster_g = to_cluster;
-			clustering_enabled(true);
 			cluster(to_cluster, $('#slider_k').slider('getValue'), draw_colonies);
 			update_cluster_counters();
 
@@ -431,20 +439,6 @@ if (typeof String.prototype.startsWith != 'function') {
     return this.indexOf(str) == 0;
   };
 }
-
-
-
-(window.onpopstate = function () {
-	var match,
-	pl = /\+/g,  // Regex for replacing addition symbol with a space
-	search = /([^&=]+)=?([^&]*)/g,
-		decode = function (s) { return decodeURIComponent(s.replace(pl, " ")); },
-		query  = window.location.search.substring(1);
-
-	urlParams = {};
-	while (match = search.exec(query))
-		urlParams[decode(match[1])] = decode(match[2]);
-})();
 
 
 var cluster = function (array_to_cluster, k, callback) {		
