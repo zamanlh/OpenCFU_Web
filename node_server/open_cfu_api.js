@@ -12,19 +12,29 @@ var app = express();
 var csv = require('csv');
 var _ = require('lodash');
 
+var methodOverride = require('method-override');
+var express     = require('express');
+var errorHandler = require('errorhandler');
+var bodyParser  = require('body-parser');
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
+var bb = require('express-busboy');
+bb.extend(app, {
+    upload: true,
+    path: 'upload_temp'
+});
+
+app.use(bodyParser.json());
 app.use(cors());
-app.use(app.router);
+app.use(express.static(__dirname + '/uploads'));
 
-
-var connect = require('reql-then')
-  , reql = connect({
-      host: 'localhost',
-      port: 28015,
-      db: 'opencfu_plates',
-      authKey: '',
-      maxPoolSize: 10  // set to 1 to disable connection pooling
-    });
-
+var connection = null;
+r.connect( {host: 'localhost', port: 28015, db: 'opencfu_plates'}, function(err, conn) {
+	if (err) throw err;
+	connection = conn;
+})
 
 //closure to generate reql query
 var generate_img_upload_query = function(p_filename, p_token, desc_obj, batch_id) {
@@ -49,7 +59,7 @@ var csv_to_json = function(csv_data) {
 };
 
 app.get('/list_plates', function(request, response) {
-	reql(r.table('plates'))
+	r.table('plates').run(connection)
 	.then(function(reql_res) {
 		reql_res.toArray(function(err, result) {
 			if(err) {
@@ -71,7 +81,7 @@ app.get('/list_plates', function(request, response) {
 });
 
 app.get('/get_plate/:token', function(request, response) {
-	reql(r.table('plates').get(request.params.token))
+	r.table('plates').get(request.params.token).run(connection)
 	.then(function(reql_res) {
 		response.writeHead(200, {'Content-Type': 'application/json'});
 		response.end(JSON.stringify(reql_res));
@@ -85,15 +95,16 @@ app.get('/get_plate/:token', function(request, response) {
 
 });
 
-app.post('/upload_plate', express.bodyParser({uploadDir:'upload_temp'}), function (req, res) {
+app.post('/upload_plate', function (req, res) {
 	var random_file_name = crypto.randomBytes(20).toString('hex');
 	var token = crypto.randomBytes(20).toString('hex');
 	var random_batch_id = crypto.randomBytes(20).toString('hex');
 
+	console.log(req.files.file)
 
-	var new_filename = random_file_name + path.extname(req.files.file.name)
+	var new_filename = random_file_name + path.extname(req.files.file.filename)
 
-    var tempPath = req.files.file.path,
+    var tempPath = req.files.file.file,
 
     targetPath = path.resolve('uploads/' + new_filename);
     fs.rename(tempPath, targetPath, function(err) {
@@ -104,7 +115,7 @@ app.post('/upload_plate', express.bodyParser({uploadDir:'upload_temp'}), functio
 
         } else {
 
-			reql(generate_img_upload_query(new_filename, token, {original_filename: req.params.filename}, random_batch_id))
+			generate_img_upload_query(new_filename, token, {original_filename: req.files.file.filename}, random_batch_id).run(connection)
 			.then(function (result) {
 				res.writeHead(200, {'Content-Type': 'application/json'});
 				res.end(JSON.stringify({'token': token}));
@@ -122,11 +133,11 @@ app.post('/upload_plate', express.bodyParser({uploadDir:'upload_temp'}), functio
 
 });
 
-app.post('/save_colonies/:token', express.bodyParser(), function(request, response) {
+app.post('/save_colonies/:token', bodyParser.urlencoded({extended: true}), function(request, response) {
 	console.log("hello!");
 	var update_request = r.table('plates').get(request.params.token).update({colonies: request.body.colonies, clustering_params: request.body.clustering_params});
 
-	reql(update_request)
+	update_request.run(connection)
 	.then(function(reql_res) {
 		response.writeHead(200, {'Content-Type': 'application/json'});
 		response.end(JSON.stringify(reql_res));
@@ -173,7 +184,7 @@ app.get('/run_open_cfu/:token', function(request, response) {
 	//console.log(ocfu_params);
 
 	//reql(r.table('plates').filter(r.row("token").eq(request.params.token)))
-	reql(r.table('plates').get(request.params.token))
+	r.table('plates').get(request.params.token).run(connection)
 	.then(function(result) {
 		var plate = result;
 
@@ -183,16 +194,15 @@ app.get('/run_open_cfu/:token', function(request, response) {
 
 			var child = exec(ocfu_command + ' uploads/' + plate.filename, function (error, stdout, stderr) {
 				if (error || stderr) {
-					console.log("shit went down...");
 					response.writeHead(497, {'Content-Type': 'application/json'});
 					response.end(JSON.stringify({'error': 'opencfu threw an error, see stderr ' + error, 'stderr': stderr }));
 				} else {
-					csv().from.string(stdout, {comment: '#'})
-					.to.array( function(data) {
+					console.log(stdout);
+					csv.parse(stdout, function(err, data) {
 						var ocfu_calls = csv_to_json(data);
 						response.writeHead(200, {'Content-Type': 'application/json'});
 						response.end(JSON.stringify(ocfu_calls));
-					});
+					})
 
 					child.on('close', function(code, signal) {
 						console.log(code);
@@ -207,21 +217,6 @@ app.get('/run_open_cfu/:token', function(request, response) {
 	});
 });
 
-	
-app.configure(function() {
-	app.use(express.json());
-	app.use(express.urlencoded());	
-	app.use(cors());
-	app.use(app.router);
-	app.use(express.json());
-	app.use(express.urlencoded());
-	app.use(express.methodOverride());
-	app.use(express.static(__dirname + '/uploads'));
-	app.use(express.errorHandler({
-		dumpException: true,
-		showStack: true
-  	}));
-});
 
 app.listen(3000);
 
