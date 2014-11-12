@@ -1,11 +1,11 @@
 var express = require('express');
-var cors = require('cors')
 var qs = require('querystring');
 var fs = require('fs');
 var r = require('rethinkdb');
+var cors = require('cors');
 var path = require('path');
 var crypto = require('crypto');
-var Promise = require("bluebird");
+var Promise = require('bluebird');
 var exec = require('child_process').exec; 
 var spawn = require('child_process').spawn; 
 var app = express();
@@ -15,26 +15,22 @@ var _ = require('lodash');
 var methodOverride = require('method-override');
 var express     = require('express');
 var errorHandler = require('errorhandler');
-var bodyParser  = require('body-parser');
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
 
 var bb = require('express-busboy');
 bb.extend(app, {
-    upload: true,
-    path: 'upload_temp'
+	upload: true,
+	path: 'upload_temp'
 });
 
-app.use(bodyParser.json());
-app.use(cors());
 app.use(express.static(__dirname + '/uploads'));
+app.use(cors());
 
 var connection = null;
 r.connect( {host: 'localhost', port: 28015, db: 'opencfu_plates'}, function(err, conn) {
 	if (err) throw err;
 	connection = conn;
-})
+});
+
 
 //closure to generate reql query
 var generate_img_upload_query = function(p_filename, p_token, desc_obj, batch_id) {
@@ -54,7 +50,6 @@ var csv_to_json = function(csv_data) {
 		};
 		return_array.push(row_obj);
 	});
-
 	return return_array;
 };
 
@@ -100,40 +95,38 @@ app.post('/upload_plate', function (req, res) {
 	var token = crypto.randomBytes(20).toString('hex');
 	var random_batch_id = crypto.randomBytes(20).toString('hex');
 
-	console.log(req.files.file)
+	console.log(req.files.file);
 
-	var new_filename = random_file_name + path.extname(req.files.file.filename)
+	var new_filename = random_file_name + path.extname(req.files.file.filename);
 
-    var tempPath = req.files.file.file,
+	var tempPath = req.files.file.file;
 
-    targetPath = path.resolve('uploads/' + new_filename);
-    fs.rename(tempPath, targetPath, function(err) {
-        if (err){
-        	console.log("oh no!");
-        	res.writeHead(497, {'Content-Type': 'application/json'});
+	targetPath = path.resolve('uploads/' + new_filename);
+	fs.rename(tempPath, targetPath, function(err) {
+		if (err){
+			console.log("oh no!");
+			res.writeHead(497, {'Content-Type': 'application/json'});
 			res.end(JSON.stringify({'error': err}));
 
-        } else {
+		} else {
 
 			generate_img_upload_query(new_filename, token, {original_filename: req.files.file.filename}, random_batch_id).run(connection)
 			.then(function (result) {
 				res.writeHead(200, {'Content-Type': 'application/json'});
 				res.end(JSON.stringify({'token': token}));
 
-	        }).error(function (err) {
+			}).error(function (err) {
 				res.writeHead(496, {'Content-Type': 'application/json'});
 				res.end(JSON.stringify({'error': 'database threw error, see dberror', dberror: err}));
 			}).catch(function (err) {
 				res.writeHead(496, {'Content-Type': 'application/json'});
 				res.end(JSON.stringify({'error': 'database threw error, see dberror', dberror: err}));
 			});
-    	}; 
-
-    });
-
+		}; 
+	});
 });
 
-app.post('/save_colonies/:token', bodyParser.urlencoded({extended: true}), function(request, response) {
+app.post('/save_colonies/:token', function(request, response) {
 	console.log("hello!");
 	var update_request = r.table('plates').get(request.params.token).update({colonies: request.body.colonies, clustering_params: request.body.clustering_params});
 
@@ -216,7 +209,6 @@ app.get('/run_open_cfu/:token', function(request, response) {
 		}; 
 	});
 });
-
 
 app.listen(3000);
 
